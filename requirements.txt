@@ -1,0 +1,5 @@
+autopep8==2.0.2
+pep8==1.7.1
+pycodestyle==2.10.0
+pyswip==0.2.11
+tomli==2.0.1
