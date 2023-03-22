@@ -1,6 +1,6 @@
 % member(A,S) :- A pertence a S 
-member(A,[A|S]).
-member(A,[B|S]) :- member(A,S).
+member(A,[A|S]) :- style_check(-singleton).
+member(A,[B|S]) :- style_check(-singleton), member(A,S).
 
 % next(A,S,TE) :- A é o próximo elemento de S, TE é o resto de S
 next(A,[A|S],S).
@@ -215,8 +215,9 @@ comando([H|T],TE) :- id([H|T],T0), colonEqual(T0,T1), expressao(T1,TE).
 comando([H|T],TE) :- chamadaProcedimento([H|T],TE).
 
 corpo([H|T],TE) :- declara([H|T],T0), rotina(T0,T1), begin(T1,T2), sentencas(T2,T3), end(T3,TE).
+corpo([H|T],[H|T]).
 
-programa([H|T],TE) :- program([H|T],T0), id(T0,T1), semicolon(T1,T2), corpo(T2,T3), dot(T3,TE).
+programa([H|T],TE) :- program([H|T],T0), espaco(T0,T1), id(T1,T2), semicolon(T2,T3), corpo(T3,T4), dot(T4,TE).
 
 % VERIFICA SE A GRAMÁTICA ESTÁ CORRETA
 grammar(L) :- programa(L,TE), empty(TE).
