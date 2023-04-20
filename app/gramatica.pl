@@ -128,11 +128,13 @@ mais_var(Palavra,Cauda) :- virgula(Palavra,Cauda0), variaveis(Cauda0,Cauda).
 mais_var(Palavra,Palavra).
 variaveis(Palavra,Cauda) :- id(Palavra,Cauda0), mais_var(Cauda0,Cauda).
 
-cont_dc(Palavra,Cauda) :- dvar(Palavra,Cauda0), mais_dc(Cauda0,Cauda).
-cont_dc(Palavra,Palavra).
-mais_dc(Palavra,Cauda) :- pontoEVirgula(Palavra,Cauda0), cont_dc(Cauda0,Cauda).
+cont_dc(Palavra,Cauda,Erro,FinalErro) :- dvar(Palavra,Cauda0,Erro,FinalErro0), mais_dc(Cauda0,Cauda,FinalErro0,FinalErro), !.
+cont_dc(Palavra,Palavra,Erro,Erro).
+mais_dc(Palavra,Cauda,Erro,FinalErro) :- pontoEVirgula(Palavra,Cauda0), cont_dc(Cauda0,Cauda,Erro,FinalErro).
 
-dvar(Palavra,Cauda) :- variaveis(Palavra,Cauda0), doisPontos(Cauda0,Cauda1), tipo_var(Cauda1,Cauda).
+dvar(Palavra,Cauda,Erro,Erro) :- variaveis(Palavra,Cauda0), doisPontos(Cauda0,Cauda1), tipo_var(Cauda1,Cauda), !.
+dvar(Palavra,Cauda,Erro,FinalErro) :- variaveis(Palavra,Cauda0), doisPontos(Cauda0,Cauda), append(['<tipo_var> esperado após <dois_pontos> em <dvar>'],Erro,FinalErro), !.
+dvar(Palavra,Cauda,Erro,FinalErro) :- variaveis(Palavra,Cauda), append(['<dois_pontos> esperado após <variaveis> em <dvar>'],Erro,FinalErro), !.
 
 cont_lista_id(Palavra,Cauda) :- virgula(Palavra,Cauda0), lista_id(Cauda0,Cauda).
 lista_id(Palavra,Cauda) :- id(Palavra,Cauda0), cont_lista_id(Cauda0,Cauda).
@@ -150,8 +152,8 @@ parametros(Palavra,Cauda,Erro,FinalErro) :-
     fechaParentese(Cauda1,Cauda).
 parametros(Palavra,Palavra,Erro,Erro).
 
-declara(Palavra,Cauda,Erro,Erro) :- var(Palavra,Cauda0), dvar(Cauda0,Cauda1), mais_dc(Cauda1,Cauda), !.
-declara(Palavra,Cauda,Erro,FinalErro) :- var(Palavra,Cauda0), dvar(Cauda0,Cauda), append(['<mais_dc> esperado após <dvar> em <declara>.'],Erro,FinalErro), !.
+declara(Palavra,Cauda,Erro,FinalErro) :- var(Palavra,Cauda0), dvar(Cauda0,Cauda1,Erro,FinalErro0), mais_dc(Cauda1,Cauda,FinalErro0,FinalErro), !.
+declara(Palavra,Cauda,Erro,FinalErro) :- var(Palavra,Cauda0), dvar(Cauda0,Cauda,Erro,FinalErro0), append(['<mais_dc> esperado após <dvar> em <declara>.'],FinalErro0,FinalErro), !.
 declara(Palavra,Cauda,Erro,FinalErro) :- var(Palavra,Cauda), append(['<dvar> esperado após <var> em <declara>.'],Erro,FinalErro), !.
 declara(Palavra,Palavra,Erro,Erro).
 
@@ -297,12 +299,12 @@ comando(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0), doisPontosIgual(Cau
 comando(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda), append(['<dois-pontos-igual> esperado após <id> em <comando>.'],Erro,FinalErro), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- chamadaProcedimento(Palavra,Cauda,Erro,FinalErro).
 
-corpo(Palavra,Palavra,Erro,Erro).
 corpo(Palavra,Cauda,Erro,FinalErro) :- declara(Palavra,Cauda0,Erro,FinalErro0), rotina(Cauda0,Cauda1,FinalErro0,FinalErro1), begin(Cauda1,Cauda2), sentencas(Cauda2,Cauda3,FinalErro1,FinalErro), end(Cauda3,Cauda), !.
 corpo(Palavra,Cauda,Erro,FinalErro) :- declara(Palavra,Cauda0,Erro,FinalErro0), rotina(Cauda0,Cauda1,FinalErro0,FinalErro1), begin(Cauda1,Cauda2), sentencas(Cauda2,Cauda,FinalErro1,FinalErro2), append(['<end> esperado após <sentencas> em <corpo>.'],FinalErro2,FinalErro), !.
 corpo(Palavra,Cauda,Erro,FinalErro) :- declara(Palavra,Cauda0,Erro,FinalErro0), rotina(Cauda0,Cauda1,FinalErro0,FinalErro1), begin(Cauda1,Cauda), append(['<sentencas> esperado após <begin> em <corpo>.'],FinalErro1,FinalErro), !.
 corpo(Palavra,Cauda,Erro,FinalErro) :- declara(Palavra,Cauda0,Erro,FinalErro0), rotina(Cauda0,Cauda,FinalErro0,FinalErro1), append(['<begin> esperado após <rotina> em <corpo>.'],FinalErro1,FinalErro), !.
 corpo(Palavra,Cauda,Erro,FinalErro) :- declara(Palavra,Cauda,Erro,FinalErro0), append(['<rotina> esperado após <declara> em <corpo>.'],FinalErro0,FinalErro), !.
+corpo(Palavra,Palavra,Erro,Erro).
 
 programa(Palavra,Cauda,Erro,FinalErro) :- program(Palavra,Cauda0), id(Cauda0,Cauda1), pontoEVirgula(Cauda1,Cauda2), corpo(Cauda2,Cauda3,Erro,FinalErro), ponto(Cauda3,Cauda), !.
 programa(Palavra,Cauda,Erro,FinalErro) :- program(Palavra,Cauda0), id(Cauda0,Cauda1), pontoEVirgula(Cauda1,Cauda2), corpo(Cauda2,Cauda,Erro,FinalErro0), append(['<ponto> esperado após <corpo> em <programa>.'],FinalErro0,FinalErro), !.
