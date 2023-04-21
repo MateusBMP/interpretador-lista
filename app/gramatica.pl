@@ -1,6 +1,6 @@
 % member(A,S) :- A pertence a S 
-member(A,[A|S]) :- style_check(-singleton).
-member(A,[B|S]) :- style_check(-singleton), member(A,S).
+member(A,[_|S]) :- member(A,S).
+member(A,[A|_]).
 
 % next(A,S,TE) :- A é o próximo elemento de S, TE é o resto de S
 next(A,[A|S],S).
@@ -161,10 +161,10 @@ declara(Palavra,Palavra,Erro,Erro).
 cont_lista_arg(Palavra,Cauda,Erro,FinalErro) :- lista_arg(Palavra,Cauda,Erro,FinalErro).
 cont_lista_arg(Palavra,Palavra,Erro,Erro).
 lista_arg(Palavra,Cauda,Erro,FinalErro) :- expressao(Palavra,Cauda0,Erro,FinalErro0), cont_lista_arg(Cauda0,Cauda,FinalErro0,FinalErro).
-argumentos(Palavra,Palavra,Erro,Erro).
 argumentos(Palavra,Cauda,Erro,FinalErro) :- abreParentese(Palavra,Cauda0), lista_arg(Cauda0,Cauda1,Erro,FinalErro), fechaParentese(Cauda1,Cauda), !.
 argumentos(Palavra,Cauda,Erro,FinalErro) :- abreParentese(Palavra,Cauda0), lista_arg(Cauda0,Cauda,Erro,FinalErro0), append(['<fecha-parentese> esperado após <lista-arg> em <argumentos>.'],FinalErro0,FinalErro), !.
 argumentos(Palavra,Cauda,Erro,FinalErro) :- abreParentese(Palavra,Cauda), append(['<lista-arg> esperado após <abre-parentese> em <argumentos>.'],Erro,FinalErro), !.
+argumentos(Palavra,Palavra,Erro,Erro).
 
 % Gramática de termos e expressões
 operando(Palavra,Cauda,Erro,Erro) :- id(Palavra,Cauda).
@@ -172,15 +172,15 @@ operando(Palavra,Cauda,Erro,Erro) :- integer_num(Palavra,Cauda).
 operando(Palavra,Cauda,Erro,Erro) :- real_num(Palavra,Cauda).
 operando(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), operando(Cauda1,Cauda2,Erro,FinalErro0), virgula(Cauda2,Cauda3), operando(Cauda3,Cauda4,FinalErro0,FinalErro), fechaParentese(Cauda4,Cauda).
 
-termo(Palavra,Cauda,Erro,Erro) :- id(Palavra,Cauda).
-termo(Palavra,Cauda,Erro,Erro) :- integer_num(Palavra,Cauda).
-termo(Palavra,Cauda,Erro,Erro) :- real_num(Palavra,Cauda).
 termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), operando(Cauda1,Cauda2,Erro,FinalErro0), virgula(Cauda2,Cauda3), operando(Cauda3,Cauda4,FinalErro0,FinalErro), fechaParentese(Cauda4,Cauda), !.
 termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), operando(Cauda1,Cauda2,Erro,FinalErro0), virgula(Cauda2,Cauda3), operando(Cauda3,Cauda,FinalErro0,FinalErro1), append(['<fecha-parentese> esperado após <operando> em <termo>.'],FinalErro1,FinalErro), !.
 termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), operando(Cauda1,Cauda2,Erro,FinalErro0), virgula(Cauda2,Cauda), append(['<operando> esperado após <virgula> em <termo>.'],FinalErro0,FinalErro), !.
 termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), operando(Cauda1,Cauda,Erro,FinalErro0), append(['<virgula> esperado após <operando> em <termo>.'],FinalErro0,FinalErro), !.
 termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(Cauda0,Cauda), append(['<operando> esperado após <abre-parentese> em <termo>.'],Erro,FinalErro), !.
 termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda), append(['<abre-parentese> esperado após <operador> em <termo>.'],Erro,FinalErro), !.
+termo(Palavra,Cauda,Erro,Erro) :- id(Palavra,Cauda).
+termo(Palavra,Cauda,Erro,Erro) :- integer_num(Palavra,Cauda).
+termo(Palavra,Cauda,Erro,Erro) :- real_num(Palavra,Cauda).
 
 conteudo(Palavra,Cauda) :- abreColchete(Palavra,Cauda0), fechaColchete(Cauda0,Cauda).
 conteudo(Palavra,Cauda) :- abreColchete(Palavra,Cauda0), integer_num(Cauda0,Cauda1), integer_num_cont(Cauda1,Cauda2), fechaColchete(Cauda2,Cauda).
@@ -194,9 +194,9 @@ expressao_lista(Palavra,Cauda,Erro,Erro) :- concatena(Palavra,Cauda0), abreParen
 expressao_lista(Palavra,Cauda,Erro,FinalErro) :- concatena(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), conteudo(Cauda1,Cauda), append(['<fecha-parentese> esperado após <conteudo> em <expressao-lista>.'],Erro,FinalErro), !.
 expressao_lista(Palavra,Cauda,Erro,FinalErro) :- concatena(Palavra,Cauda0), abreParentese(Cauda0,Cauda), append(['<conteudo> esperado após <abre-parentese> em <expressao-lista>.'],Erro,FinalErro), !.
 expressao_lista(Palavra,Cauda,Erro,FinalErro) :- concatena(Palavra,Cauda), append(['<abre-parentese> esperado após <concatena> em <expressao-lista>.'],Erro,FinalErro).
-expressao_num(Palavra,Cauda,Erro,FinalErro) :- termo(Palavra,Cauda,Erro,FinalErro).
 expressao_num(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0), argumentos(Cauda0,Cauda,Erro,FinalErro), !.
-expressao_num(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda), append(['<argumentos> esperado após <id> em <expressao-num>,'],Erro,FinalErro).
+expressao_num(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda), append(['<argumentos> esperado após <id> em <expressao-num>.'],Erro,FinalErro), !.
+expressao_num(Palavra,Cauda,Erro,FinalErro) :- termo(Palavra,Cauda,Erro,FinalErro).
 expressao(Palavra,Cauda,Erro,FinalErro) :- expressao_lista(Palavra,Cauda,Erro,FinalErro).
 expressao(Palavra,Cauda,Erro,FinalErro) :- expressao_num(Palavra,Cauda,Erro,FinalErro).
 
@@ -252,7 +252,7 @@ pfalsa(Palavra,Cauda,Erro,FinalErro) :- else(Palavra,Cauda), append(['<begin> es
 pfalsa(Palavra,Palavra,Erro,Erro).
 
 chamadaProcedimento(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0), argumentos(Cauda0,Cauda,Erro,FinalErro), !.
-chamadaProcedimento(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda), append(['<argumentos> esperado após <id> em <chamada-procedimento>.'],Erro,FinalErro), !.
+chamadaProcedimento(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda), append(['<argumentos> esperado após <id> em <chamada-procedimento>.'],Erro,FinalErro).
 comando(Palavra,Cauda,Erro,Erro) :- readd(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), var_read(Cauda1,Cauda2), fechaParentese(Cauda2,Cauda), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- readd(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), var_read(Cauda1,Cauda), append(['<fecha-parentese> esperado após <var-read> em <comando>.'],Erro,FinalErro), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- readd(Palavra,Cauda0), abreParentese(Cauda0,Cauda), append(['<var-read> esperado após <abre-parentese> em <comando>.'],Erro,FinalErro), !.
