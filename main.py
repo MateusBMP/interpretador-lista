@@ -1,4 +1,7 @@
+import sys
+from app.config import Config
 from app.interpretador import Interpretador
+from app.programa import Programa
 
 PROGRAM: str = """
 # criando o programa prog1 #
@@ -12,11 +15,25 @@ end.
 
 
 def main():
-    interpretador = Interpretador()
-    interpretador.analisarPrograma(PROGRAM)
+    programa = Programa(PROGRAM)
+    interpretador = Interpretador(programa)
+    result, errors = interpretador.analisarPrograma()
+
+    if result:
+        print("Programa aceito!")
+    else:
+        print("Programa rejeitado!")
+        for error in errors:
+            print(error)
 
     return 0
 
 
 if __name__ == '__main__':
+    config = Config()
+
+    for arg in sys.argv:
+        if arg == '--debug':
+            config.set('debug', True)
+
     main()
