@@ -8,7 +8,7 @@ from colorama import just_fix_windows_console, Fore, Style
 PROGRAM: str = """
 # criando o programa prog1 #
 program prog1;
-var v1,: integer;
+var v1,v2: integer;
 begin
 v1 := +(1,2);
 v2 := -(v1,3);
@@ -37,6 +37,9 @@ def main():
         coloring = False
         colored = False
         start_line = True
+        # Corrige a posição do erro caso seja logo após um \n
+        while PROGRAM[main_error['posicao'] - 1] == '\n':
+            main_error['posicao'] -= 1
         for i, char in enumerate(PROGRAM):
             if start_line:
                 print(Style.RESET_ALL + Style.BRIGHT + Fore.BLUE + str(line + 1) + ' ' + Style.RESET_ALL, end='')

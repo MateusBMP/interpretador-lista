@@ -215,6 +215,7 @@ cont_sentencas(Palavra,Cauda,Erro,FinalErro) :- sentencas(Palavra,Cauda,Erro,Fin
 cont_sentencas(Palavra,Palavra,Erro,Erro).
 mais_sentencas(Palavra,Cauda,Erro,FinalErro) :- pontoEVirgula(Palavra,Cauda0), cont_sentencas(Cauda0,Cauda,Erro,FinalErro).
 sentencas(Palavra,Cauda,Erro,FinalErro) :- comando(Palavra,Cauda0,Erro,FinalErro0), mais_sentencas(Cauda0,Cauda,FinalErro0,FinalErro).
+sentencas(Palavra,Cauda,Erro,FinalErro) :- comando(Palavra,Cauda,Erro,FinalErro0), setError('<ponto-e-virgula> esperado após <comando> em <sentencas>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 
 tipo_funcao(Palavra,Cauda) :- integerr(Palavra,Cauda).
 tipo_funcao(Palavra,Cauda) :- real(Palavra,Cauda).
