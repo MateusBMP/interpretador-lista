@@ -2,11 +2,13 @@ import sys
 from app.config import Config
 from app.interpretador import Interpretador
 from app.programa import Programa
+from colorama import just_fix_windows_console, Fore, Style
+
 
 PROGRAM: str = """
 # criando o programa prog1 #
 program prog1;
-var v1,v2: integer;
+var v1,: integer;
 begin
 v1 := +(1,2);
 v2 := -(v1,3);
@@ -19,12 +21,42 @@ def main():
     interpretador = Interpretador(programa)
     result, errors = interpretador.analisarPrograma()
 
+    just_fix_windows_console()
+
     if result:
-        print("Programa aceito!")
+        print(Fore.GREEN + "Programa aceito!")
     else:
-        print("Programa rejeitado!")
-        for error in errors:
-            print(error)
+        print(Fore.RED + "Programa rejeitado!")
+        print()
+        main_error = errors.pop()
+        if Config().get('debug'):
+            print(Fore.RESET, end='')
+            print(main_error)
+        print(Fore.BLUE + Style.BRIGHT + "@@ Programa" + Style.RESET_ALL)
+        line = 0
+        coloring = False
+        colored = False
+        start_line = True
+        for i, char in enumerate(PROGRAM):
+            if start_line:
+                print(Style.RESET_ALL + Style.BRIGHT + Fore.BLUE + str(line + 1) + ' ' + Style.RESET_ALL, end='')
+                start_line = False
+            if i == main_error['posicao']:
+                coloring = True
+            if char == '\n':
+                line += 1
+                start_line = True
+                if coloring:
+                    print(Style.BRIGHT + Fore.RED + " # ERRO: %s #" % main_error['erro'], end='')
+                    coloring = False
+                    colored = True
+            if coloring:
+                print(Style.RESET_ALL + Fore.RED + char, end='')
+            elif colored:
+                print(Fore.RESET + Style.DIM + char, end='')
+            else:
+                print(Fore.RESET + char, end='')
+        print(Style.RESET_ALL)
 
     return 0
 

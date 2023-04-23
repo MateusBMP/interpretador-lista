@@ -59,6 +59,6 @@ class Interpretador():
 
         errors = []
         for error in end_error:
-            errors.append(self._tratarErro(error, len(self.programa.consideravel()) - 1))
+            errors.append(self._tratarErro(error, len(self.programa.consideravel())))
 
         return result, errors

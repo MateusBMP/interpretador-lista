@@ -55,4 +55,4 @@ class Programa:
             i += 1
             j += 1
 
-        return mapa[posicao]
+        return mapa[posicao] if posicao in mapa else i - 1
