@@ -9,9 +9,14 @@ PROGRAM: str = """
 # criando o programa prog1 #
 program prog1;
 var v1,v2: integer;
+# function sum(a,b: integer): integer;
+    var result: integer;
+    begin
+    result := +(a,b);
+    end; #
 begin
-v1 := +(1,2);
-v2 := -(v1,3);
+    v1 := +(1,2);
+    v2 := -(v1,3);
 end.
 """
 
@@ -37,8 +42,8 @@ def main():
         coloring = False
         colored = False
         start_line = True
-        # Corrige a posição do erro caso seja logo após um \n
-        while PROGRAM[main_error['posicao'] - 1] == '\n':
+        # Corrige a posição do erro caso seja logo após um \n, espaço ou tab
+        while PROGRAM[main_error['posicao'] - 1] in ['\n', ' ', '\t']:
             main_error['posicao'] -= 1
         for i, char in enumerate(PROGRAM):
             if start_line:

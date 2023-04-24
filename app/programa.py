@@ -10,8 +10,8 @@ class Programa:
 
     def consideravel(self) -> str:
         # Converte cada caractere de programa para uma lista de caracteres
-        # também remove o caractere de nova linha e os espaços
-        program_list: list[str] = [*self.original.replace('\n', '').replace(' ', '')]
+        # também remove o caractere de nova linha, espaços e tabs
+        program_list: list[str] = [*self.original.replace('\n', '').replace(' ', '').replace('\t', '')]
 
         # Remove o primeiro e o último caractere '#' da lista e todos os caracteres entre eles
         init = False
@@ -37,7 +37,7 @@ class Programa:
         init = False
         program_list = [*self.original]
         while i < len(program_list):
-            if program_list[i] == '\n' or program_list[i] == ' ':
+            if program_list[i] in ['\n', ' ', '\t']:
                 i += 1
                 continue
             if program_list[i] == '#' and init:
