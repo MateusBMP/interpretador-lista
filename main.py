@@ -8,7 +8,7 @@ from colorama import just_fix_windows_console, Fore, Style
 PROGRAM: str = """
 # criando o programa prog1 #
 program prog1;
-var v1,v2: integer;
+var v1,v2,v3: integer;
 # efetura a soma de dois valores #
 function sum(a,b: integer): integer;
     var result: integer;

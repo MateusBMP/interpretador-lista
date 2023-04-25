@@ -1,3 +1,10 @@
+% Controle de variáveis. É reescrito via assert e retract
+:- dynamic variavel/1.
+
+setVariavel(Variavel) :- string_chars(String,Variavel), assertz(variavel(String)).
+unsetVariavel(Variavel) :- string_chars(String,Variavel), retract(variavel(String)).
+isVariavel(Variavel) :- string_chars(String,Variavel), variavel(String).
+
 % set(A,S) :- A é igual a S
 set(A,A).
 
@@ -27,7 +34,7 @@ neg(G) :- call(G), !, fail.
 neg(_) :- true.
 
 % selecionado(Palavra,Cauda,PalavraFinal) :- Pega a palavra selecionada a partir do que sobrou da cauda
-selecionada([C|Palavra],Cauda,PAtual,PFinal) :- length([C|Palavra],L1), length(Cauda,L2), L1 >= L2, append(PAtual,[C],PFinal0), selecionada(Palavra,Cauda,PFinal0,PFinal).
+selecionada([C|Palavra],Cauda,PAtual,PFinal) :- length([C|Palavra],L1), length(Cauda,L2), L1 > L2, append(PAtual,[C],PFinal0), selecionada(Palavra,Cauda,PFinal0,PFinal).
 selecionada(_,_,PAtual,PAtual).
 
 % Palavras reservadas
@@ -151,37 +158,39 @@ real_num_cont(Palavra,Palavra).
 id_cont(Palavra,Cauda) :- letra(Palavra,Cauda0), id_cont(Cauda0,Cauda).
 id_cont(Palavra,Cauda) :- digito(Palavra,Cauda0), id_cont(Cauda0,Cauda).
 id_cont(Palavra,Palavra).
-id(Palavra,Cauda) :- letra(Palavra,Cauda0), id_cont(Cauda0,Cauda), selecionada(Palavra,Cauda,[],Selecionada), !, neg(reservada(Selecionada)).
+id(Palavra,Cauda,Erro,Erro) :- letra(Palavra,Cauda0), id_cont(Cauda0,Cauda), selecionada(Palavra,Cauda,[],Selecionada), !, neg(reservada(Selecionada)).
+id(Palavra,Cauda,Erro,FinalErro) :- letra(Palavra,Cauda0), id_cont(Cauda0,Cauda), setError('<id> não pode ser uma palavra reservada',Cauda,NovoErro), append([NovoErro],Erro,FinalErro).
 
 tipo_var(Palavra,Cauda) :- integerr(Palavra,Cauda).
 tipo_var(Palavra,Cauda) :- real(Palavra,Cauda).
 tipo_var(Palavra,Cauda) :- abreColchete(Palavra,Cauda0), integerr(Cauda0,Cauda1), fechaColchete(Cauda1,Cauda).
 tipo_var(Palavra,Cauda) :- abreColchete(Palavra,Cauda0), real(Cauda0,Cauda1), fechaColchete(Cauda1,Cauda).
 
-mais_var_read(Palavra,Cauda) :- virgula(Palavra,Cauda0), var_read(Cauda0,Cauda).
+mais_var_read(Palavra,Cauda,Erro,FinalErro) :- virgula(Palavra,Cauda0), var_read(Cauda0,Cauda,Erro,FinalErro).
 mais_var_read(Palavra,Palavra,Erro,Erro).
-var_read(Palavra,Cauda) :- id(Palavra,Cauda0), mais_var_read(Cauda0,Cauda).
+var_read(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0,Erro,FinalErro0), mais_var_read(Cauda0,Cauda,FinalErro0,FinalErro).
 
-mais_var_write(Palavra,Cauda) :- virgula(Palavra,Cauda0), var_write(Cauda0,Cauda).
-mais_var_write(Palavra,Palavra).
-var_write(Palavra,Cauda) :- id(Palavra,Cauda0), mais_var_write(Cauda0,Cauda).
+mais_var_write(Palavra,Cauda,Erro,FinalErro) :- virgula(Palavra,Cauda0), var_write(Cauda0,Cauda,Erro,FinalErro).
+mais_var_write(Palavra,Palavra,Erro,Erro).
+var_write(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0,Erro,FinalErro0), mais_var_write(Cauda0,Cauda,FinalErro0,FinalErro).
 
-mais_var(Palavra,Cauda) :- virgula(Palavra,Cauda0), variaveis(Cauda0,Cauda).
-mais_var(Palavra,Palavra).
-variaveis(Palavra,Cauda) :- id(Palavra,Cauda0), mais_var(Cauda0,Cauda).
+mais_var(Palavra,Cauda,Erro,FinalErro) :- virgula(Palavra,Cauda0), variaveis(Cauda0,Cauda,Erro,FinalErro), !.
+mais_var(Palavra,Palavra,Erro,Erro).
+variaveis(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0,Erro,FinalErro0), selecionada(Palavra,Cauda0,[],Selecionada), setVariavel(Selecionada), mais_var(Cauda0,Cauda,FinalErro0,FinalErro), !.
+variaveis(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda,Erro,FinalErro0), setError('<virgula> esperado após <id> em <variaveis>',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro).
 
 cont_dc(Palavra,Cauda,Erro,FinalErro) :- dvar(Palavra,Cauda0,Erro,FinalErro0), mais_dc(Cauda0,Cauda,FinalErro0,FinalErro), !.
 cont_dc(Palavra,Palavra,Erro,Erro).
 mais_dc(Palavra,Cauda,Erro,FinalErro) :- pontoEVirgula(Palavra,Cauda0), cont_dc(Cauda0,Cauda,Erro,FinalErro).
 
-dvar(Palavra,Cauda,Erro,Erro) :- variaveis(Palavra,Cauda0), doisPontos(Cauda0,Cauda1), tipo_var(Cauda1,Cauda), !.
-dvar(Palavra,Cauda,Erro,FinalErro) :- variaveis(Palavra,Cauda0), doisPontos(Cauda0,Cauda), setError('<tipo_var> esperado após <dois_pontos> em <dvar>',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
-dvar(Palavra,Cauda,Erro,FinalErro) :- variaveis(Palavra,Cauda), setError('<dois_pontos> esperado após <variaveis> em <dvar>',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
+dvar(Palavra,Cauda,Erro,FinalErro) :- variaveis(Palavra,Cauda0,Erro,FinalErro), doisPontos(Cauda0,Cauda1), tipo_var(Cauda1,Cauda), !.
+dvar(Palavra,Cauda,Erro,FinalErro) :- variaveis(Palavra,Cauda0,Erro,FinalErro0), doisPontos(Cauda0,Cauda), setError('<tipo_var> esperado após <dois_pontos> em <dvar>',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
+dvar(Palavra,Cauda,Erro,FinalErro) :- variaveis(Palavra,Cauda,Erro,FinalErro0), setError('<dois_pontos> esperado após <variaveis> em <dvar>',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 
-cont_lista_id(Palavra,Cauda,Erro,FinalErro) :- virgula(Palavra,Cauda0), lista_id(Cauda0,Cauda,Erro,FinalErro).
+cont_lista_id(Palavra,Cauda,Erro,FinalErro) :- virgula(Palavra,Cauda0), lista_id(Cauda0,Cauda,Erro,FinalErro), !.
 cont_lista_id(Palavra,Palavra,Erro,Erro).
-lista_id(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0), cont_lista_id(Cauda0,Cauda,Erro,FinalErro), !.
-lista_id(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda), setError('<virgula> esperado após <id> em <lista_id>',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
+lista_id(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0,Erro,FinalErro0), selecionada(Palavra,Cauda0,[],Selecionada), setVariavel(Selecionada), cont_lista_id(Cauda0,Cauda,FinalErro0,FinalErro), !.
+lista_id(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda,Erro,FinalErro0), setError('<virgula> esperado após <id> em <lista_id>',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 
 cont_lista_par(Palavra,Cauda,Erro,FinalErro) :- virgula(Palavra,Cauda0), lista_parametros(Cauda0,Cauda,Erro,FinalErro).
 cont_lista_par(Palavra,Palavra,Erro,Erro).
@@ -210,10 +219,11 @@ argumentos(Palavra,Cauda,Erro,FinalErro) :- abreParentese(Palavra,Cauda), setErr
 argumentos(Palavra,Palavra,Erro,Erro).
 
 % Gramática de termos e expressões
-operando(Palavra,Cauda,Erro,Erro) :- id(Palavra,Cauda).
 operando(Palavra,Cauda,Erro,Erro) :- integer_num(Palavra,Cauda).
 operando(Palavra,Cauda,Erro,Erro) :- real_num(Palavra,Cauda).
 operando(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), operando(Cauda1,Cauda2,Erro,FinalErro0), virgula(Cauda2,Cauda3), operando(Cauda3,Cauda4,FinalErro0,FinalErro), fechaParentese(Cauda4,Cauda).
+operando(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda,Erro,FinalErro), selecionada(Palavra,Cauda,[],Selecionada), isVariavel(Selecionada).
+operando(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda,Erro,FinalErro0), setError('<id> não é uma variável declarada em <operando>',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro).
 
 termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), operando(Cauda1,Cauda2,Erro,FinalErro0), virgula(Cauda2,Cauda3), operando(Cauda3,Cauda4,FinalErro0,FinalErro), fechaParentese(Cauda4,Cauda), !.
 termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), operando(Cauda1,Cauda2,Erro,FinalErro0), virgula(Cauda2,Cauda3), operando(Cauda3,Cauda,FinalErro0,FinalErro1), setError('<fecha-parentese> esperado após <operando> em <termo>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
@@ -221,7 +231,7 @@ termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(C
 termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), operando(Cauda1,Cauda,Erro,FinalErro0), setError('<virgula> esperado após <operando> em <termo>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda0), abreParentese(Cauda0,Cauda), setError('<operando> esperado após <abre-parentese> em <termo>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
 termo(Palavra,Cauda,Erro,FinalErro) :- operador(Palavra,Cauda), setError('<abre-parentese> esperado após <operador> em <termo>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
-termo(Palavra,Cauda,Erro,Erro) :- id(Palavra,Cauda).
+termo(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda,Erro,FinalErro).
 termo(Palavra,Cauda,Erro,Erro) :- integer_num(Palavra,Cauda).
 termo(Palavra,Cauda,Erro,Erro) :- real_num(Palavra,Cauda).
 
@@ -237,8 +247,8 @@ expressao_lista(Palavra,Cauda,Erro,Erro) :- concatena(Palavra,Cauda0), abreParen
 expressao_lista(Palavra,Cauda,Erro,FinalErro) :- concatena(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), conteudo(Cauda1,Cauda), setError('<fecha-parentese> esperado após <conteudo> em <expressao-lista>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
 expressao_lista(Palavra,Cauda,Erro,FinalErro) :- concatena(Palavra,Cauda0), abreParentese(Cauda0,Cauda), setError('<conteudo> esperado após <abre-parentese> em <expressao-lista>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
 expressao_lista(Palavra,Cauda,Erro,FinalErro) :- concatena(Palavra,Cauda), setError('<abre-parentese> esperado após <concatena> em <expressao-lista>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro).
-expressao_num(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0), argumentos(Cauda0,Cauda,Erro,FinalErro), !.
-expressao_num(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda), setError('<argumentos> esperado após <id> em <expressao-num>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
+expressao_num(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0,Erro,FinalErro0), argumentos(Cauda0,Cauda,FinalErro0,FinalErro), !.
+expressao_num(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda,Erro,FinalErro0), setError('<argumentos> esperado após <id> em <expressao-num>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 expressao_num(Palavra,Cauda,Erro,FinalErro) :- termo(Palavra,Cauda,Erro,FinalErro).
 expressao(Palavra,Cauda,Erro,FinalErro) :- expressao_lista(Palavra,Cauda,Erro,FinalErro).
 expressao(Palavra,Cauda,Erro,FinalErro) :- expressao_num(Palavra,Cauda,Erro,FinalErro).
@@ -255,22 +265,22 @@ tipo_funcao(Palavra,Cauda) :- real(Palavra,Cauda).
 tipo_funcao(Palavra,Cauda) :- abreColchete(Palavra,Cauda0), integerr(Cauda0,Cauda1), fechaColchete(Cauda1,Cauda).
 tipo_funcao(Palavra,Cauda) :- abreColchete(Palavra,Cauda0), real(Cauda0,Cauda1), fechaColchete(Cauda1,Cauda).
 
-funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda2,Erro,FinalErro0), doisPontos(Cauda2,Cauda3), tipo_funcao(Cauda3,Cauda4), pontoEVirgula(Cauda4,Cauda5), corpo(Cauda5,Cauda6,FinalErro0,FinalErro1), pontoEVirgula(Cauda6,Cauda7), rotina(Cauda7,Cauda,FinalErro1,FinalErro), !.
-funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda2,Erro,FinalErro0), doisPontos(Cauda2,Cauda3), tipo_funcao(Cauda3,Cauda4), pontoEVirgula(Cauda4,Cauda5), corpo(Cauda5,Cauda6,FinalErro0,FinalErro1), pontoEVirgula(Cauda6,Cauda), setError('<rotina> esperado após <ponto-e-virgula> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
-funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda2,Erro,FinalErro0), doisPontos(Cauda2,Cauda3), tipo_funcao(Cauda3,Cauda4), pontoEVirgula(Cauda4,Cauda5), corpo(Cauda5,Cauda,FinalErro0,FinalErro1), setError('<ponto-e-virgula> esperado após <corpo> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
-funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda2,Erro,FinalErro0), doisPontos(Cauda2,Cauda3), tipo_funcao(Cauda3,Cauda4), pontoEVirgula(Cauda4,Cauda), setError('<corpo> esperado após <ponto-e-virgula> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
-funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda2,Erro,FinalErro0), doisPontos(Cauda2,Cauda3), tipo_funcao(Cauda3,Cauda), setError('<ponto-e-virgula> esperado após <tipo-funcao> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
-funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda2,Erro,FinalErro0), doisPontos(Cauda2,Cauda), setError('<tipo-funcao> esperado após <dois-pontos> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
-funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda,Erro,FinalErro0), setError('<dois-pontos> esperado após <parametros> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
-funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda), setError('<parametros> esperado após <id> em <funcao>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
+funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda2,FinalErro0,FinalErro1), doisPontos(Cauda2,Cauda3), tipo_funcao(Cauda3,Cauda4), pontoEVirgula(Cauda4,Cauda5), corpo(Cauda5,Cauda6,FinalErro1,FinalErro2), pontoEVirgula(Cauda6,Cauda7), rotina(Cauda7,Cauda,FinalErro2,FinalErro), !.
+funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda2,FinalErro0,FinalErro1), doisPontos(Cauda2,Cauda3), tipo_funcao(Cauda3,Cauda4), pontoEVirgula(Cauda4,Cauda5), corpo(Cauda5,Cauda6,FinalErro1,FinalErro2), pontoEVirgula(Cauda6,Cauda), setError('<rotina> esperado após <ponto-e-virgula> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro2,FinalErro), !.
+funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda2,FinalErro0,FinalErro1), doisPontos(Cauda2,Cauda3), tipo_funcao(Cauda3,Cauda4), pontoEVirgula(Cauda4,Cauda5), corpo(Cauda5,Cauda,FinalErro1,FinalErro2), setError('<ponto-e-virgula> esperado após <corpo> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro2,FinalErro), !.
+funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda2,FinalErro0,FinalErro1), doisPontos(Cauda2,Cauda3), tipo_funcao(Cauda3,Cauda4), pontoEVirgula(Cauda4,Cauda), setError('<corpo> esperado após <ponto-e-virgula> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
+funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda2,FinalErro0,FinalErro1), doisPontos(Cauda2,Cauda3), tipo_funcao(Cauda3,Cauda), setError('<ponto-e-virgula> esperado após <tipo-funcao> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
+funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda2,FinalErro0,FinalErro1), doisPontos(Cauda2,Cauda), setError('<tipo-funcao> esperado após <dois-pontos> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
+funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda,FinalErro0,FinalErro1), setError('<dois-pontos> esperado após <parametros> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
+funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda0), id(Cauda0,Cauda,Erro,FinalErro0), setError('<parametros> esperado após <id> em <funcao>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 funcao(Palavra,Cauda,Erro,FinalErro) :- function(Palavra,Cauda), setError('<id> esperado após <function> em <funcao>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro).
 
-procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda2,Erro,FinalErro0), pontoEVirgula(Cauda2,Cauda3), corpo(Cauda3,Cauda4,FinalErro0,FinalErro1), pontoEVirgula(Cauda4,Cauda5), rotina(Cauda5,Cauda,FinalErro1,FinalErro), !.
-procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda2,Erro,FinalErro0), pontoEVirgula(Cauda2,Cauda3), corpo(Cauda3,Cauda4,FinalErro0,FinalErro1), pontoEVirgula(Cauda4,Cauda), setError('<rotina> esperado após <ponto-e-virgula> em <procedimento>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
-procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda2,Erro,FinalErro0), pontoEVirgula(Cauda2,Cauda3), corpo(Cauda3,Cauda,FinalErro0,FinalErro1), setError('<ponto-e-virgula> esperado após <corpo> em <procedimento>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
-procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda2,Erro,FinalErro0), pontoEVirgula(Cauda2,Cauda), setError('<corpo> esperado após <ponto-e-virgula> em <procedimento>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
-procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda1), parametros(Cauda1,Cauda,Erro,FinalErro0), setError('<ponto-e-virgula> esperado após <parametros> em <procedimento>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
-procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda), setError('<parametros> esperado após <id> em <procedimento>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
+procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda2,FinalErro0,FinalErro1), pontoEVirgula(Cauda2,Cauda3), corpo(Cauda3,Cauda4,FinalErro1,FinalErro2), pontoEVirgula(Cauda4,Cauda5), rotina(Cauda5,Cauda,FinalErro2,FinalErro), !.
+procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda2,FinalErro0,FinalErro1), pontoEVirgula(Cauda2,Cauda3), corpo(Cauda3,Cauda4,FinalErro1,FinalErro2), pontoEVirgula(Cauda4,Cauda), setError('<rotina> esperado após <ponto-e-virgula> em <procedimento>.',Cauda,NovoErro), append([NovoErro],FinalErro2,FinalErro), !.
+procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda2,FinalErro0,FinalErro1), pontoEVirgula(Cauda2,Cauda3), corpo(Cauda3,Cauda,FinalErro1,FinalErro2), setError('<ponto-e-virgula> esperado após <corpo> em <procedimento>.',Cauda,NovoErro), append([NovoErro],FinalErro2,FinalErro), !.
+procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda2,FinalErro0,FinalErro1), pontoEVirgula(Cauda2,Cauda), setError('<corpo> esperado após <ponto-e-virgula> em <procedimento>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
+procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), parametros(Cauda1,Cauda,FinalErro0,FinalErro1), setError('<ponto-e-virgula> esperado após <parametros> em <procedimento>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
+procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda0), id(Cauda0,Cauda,Erro,FinalErro0), setError('<parametros> esperado após <id> em <procedimento>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 procedimento(Palavra,Cauda,Erro,FinalErro) :- procedure(Palavra,Cauda), setError('<id> esperado após <procedure> em <procedimento>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro).
 
 rotina(Palavra,Cauda,Erro,FinalErro) :- funcao(Palavra,Cauda,Erro,FinalErro).
@@ -295,25 +305,25 @@ pfalsa(Palavra,Cauda,Erro,FinalErro) :- else(Palavra,Cauda0), begin(Cauda0,Cauda
 pfalsa(Palavra,Cauda,Erro,FinalErro) :- else(Palavra,Cauda), setError('<begin> esperado após <else> em <pfalsa>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
 pfalsa(Palavra,Palavra,Erro,Erro).
 
-chamadaProcedimento(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0), argumentos(Cauda0,Cauda,Erro,FinalErro), !.
-chamadaProcedimento(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda), setError('<argumentos> esperado após <id> em <chamada-procedimento>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro).
-comando(Palavra,Cauda,Erro,Erro) :- readd(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), var_read(Cauda1,Cauda2), fechaParentese(Cauda2,Cauda), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- readd(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), var_read(Cauda1,Cauda), setError('<fecha-parentese> esperado após <var-read> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
+chamadaProcedimento(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0,Erro,FinalErro0), argumentos(Cauda0,Cauda,FinalErro0,FinalErro), !.
+chamadaProcedimento(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda,Erro,FinalErro0), setError('<argumentos> esperado após <id> em <chamada-procedimento>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro).
+comando(Palavra,Cauda,Erro,FinalErro) :- readd(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), var_read(Cauda1,Cauda2,Erro,FinalErro), fechaParentese(Cauda2,Cauda), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- readd(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), var_read(Cauda1,Cauda,Erro,FinalErro0), setError('<fecha-parentese> esperado após <var-read> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- readd(Palavra,Cauda0), abreParentese(Cauda0,Cauda), setError('<var-read> esperado após <abre-parentese> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- readd(Palavra,Cauda), setError('<abre-parentese> esperado após <readd> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
-comando(Palavra,Cauda,Erro,Erro) :- writee(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), var_write(Cauda1,Cauda2), fechaParentese(Cauda2,Cauda), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- writee(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), var_write(Cauda1,Cauda), setError('<fecha-parentese> esperado após <var-write> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- writee(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), var_write(Cauda1,Cauda2,Erro,FinalErro), fechaParentese(Cauda2,Cauda), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- writee(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), var_write(Cauda1,Cauda,Erro,FinalErro0), setError('<fecha-parentese> esperado após <var-write> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- writee(Palavra,Cauda0), abreParentese(Cauda0,Cauda), setError('<var-write> esperado após <abre-parentese> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- writee(Palavra,Cauda), setError('<abre-parentese> esperado após <writee> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,Erro,FinalErro0), to(Cauda3,Cauda4), expressao(Cauda4,Cauda5,FinalErro0,FinalErro1), doo(Cauda5,Cauda6), begin(Cauda6,Cauda7), sentencas(Cauda7,Cauda8,FinalErro1,FinalErro), end(Cauda8,Cauda), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,Erro,FinalErro0), to(Cauda3,Cauda4), expressao(Cauda4,Cauda5,FinalErro0,FinalErro1), doo(Cauda5,Cauda6), begin(Cauda6,Cauda7), sentencas(Cauda7,Cauda,FinalErro1,FinalErro2), setError('<end> esperado após <sentencas> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro2,FinalErro), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,Erro,FinalErro0), to(Cauda3,Cauda4), expressao(Cauda4,Cauda5,FinalErro0,FinalErro1), doo(Cauda5,Cauda6), begin(Cauda6,Cauda), setError('<sentencas> esperado após <begin> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,Erro,FinalErro0), to(Cauda3,Cauda4), expressao(Cauda4,Cauda5,FinalErro0,FinalErro1), doo(Cauda5,Cauda), setError('<begin> esperado após <doo> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,Erro,FinalErro0), to(Cauda3,Cauda4), expressao(Cauda4,Cauda,FinalErro0,FinalErro1), setError('<doo> esperado após <expressao> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,Erro,FinalErro0), to(Cauda3,Cauda), setError('<expressao> esperado após <to> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda,Erro,FinalErro0), setError('<to> esperado após <expressao> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1), doisPontosIgual(Cauda1,Cauda), setError('<expressao> esperado após <dois-pontos-igual> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda), setError('<dois-pontos-igual> esperado após <id> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,FinalErro0,FinalErro1), to(Cauda3,Cauda4), expressao(Cauda4,Cauda5,FinalErro1,FinalErro2), doo(Cauda5,Cauda6), begin(Cauda6,Cauda7), sentencas(Cauda7,Cauda8,FinalErro2,FinalErro), end(Cauda8,Cauda), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,FinalErro0,FinalErro1), to(Cauda3,Cauda4), expressao(Cauda4,Cauda5,FinalErro1,FinalErro2), doo(Cauda5,Cauda6), begin(Cauda6,Cauda7), sentencas(Cauda7,Cauda,FinalErro2,FinalErro3), setError('<end> esperado após <sentencas> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro3,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,FinalErro0,FinalErro1), to(Cauda3,Cauda4), expressao(Cauda4,Cauda5,FinalErro1,FinalErro2), doo(Cauda5,Cauda6), begin(Cauda6,Cauda), setError('<sentencas> esperado após <begin> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro2,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,FinalErro0,FinalErro1), to(Cauda3,Cauda4), expressao(Cauda4,Cauda5,FinalErro1,FinalErro2), doo(Cauda5,Cauda), setError('<begin> esperado após <doo> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro2,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,FinalErro0,FinalErro1), to(Cauda3,Cauda4), expressao(Cauda4,Cauda,FinalErro1,FinalErro2), setError('<doo> esperado após <expressao> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro2,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda3,FinalErro0,FinalErro1), to(Cauda3,Cauda), setError('<expressao> esperado após <to> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), doisPontosIgual(Cauda1,Cauda2), expressao(Cauda2,Cauda,FinalErro0,FinalErro1), setError('<to> esperado após <expressao> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), doisPontosIgual(Cauda1,Cauda), setError('<expressao> esperado após <dois-pontos-igual> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda0), id(Cauda0,Cauda,Erro,FinalErro0), setError('<dois-pontos-igual> esperado após <id> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- forr(Palavra,Cauda), setError('<id> esperado após <forr> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- repeat(Palavra,Cauda0), sentencas(Cauda0,Cauda1,Erro,FinalErro0), until(Cauda1,Cauda2), abreParentese(Cauda2,Cauda3), condicao(Cauda3,Cauda4,FinalErro0,FinalErro), fechaParentese(Cauda4,Cauda), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- repeat(Palavra,Cauda0), sentencas(Cauda0,Cauda1,Erro,FinalErro0), until(Cauda1,Cauda2), abreParentese(Cauda2,Cauda3), condicao(Cauda3,Cauda,FinalErro0,FinalErro1), setError('<fecha-parentese> esperado após <condicao> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
@@ -338,8 +348,10 @@ comando(Palavra,Cauda,Erro,FinalErro) :- if(Palavra,Cauda0), abreParentese(Cauda
 comando(Palavra,Cauda,Erro,FinalErro) :- if(Palavra,Cauda0), abreParentese(Cauda0,Cauda1), condicao(Cauda1,Cauda,Erro,FinalErro0), setError('<fecha-parentese> esperado após <condicao> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- if(Palavra,Cauda0), abreParentese(Cauda0,Cauda), setError('<condicao> esperado após <abre-parentese> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- if(Palavra,Cauda), setError('<abre-parentese> esperado após <if> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0), doisPontosIgual(Cauda0,Cauda1), expressao(Cauda1,Cauda,Erro,FinalErro), !.
-comando(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0), doisPontosIgual(Cauda0,Cauda), setError('<expressao> esperado após <dois-pontos-igual> em <comando>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0,Erro,FinalErro0), selecionada(Palavra,Cauda0,[],Selecionada), isVariavel(Selecionada), doisPontosIgual(Cauda0,Cauda1), expressao(Cauda1,Cauda,FinalErro0,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda0,Erro,FinalErro0), selecionada(Palavra,Cauda0,[],Selecionada), isVariavel(Selecionada), doisPontosIgual(Cauda0,Cauda), setError('<expressao> esperado após <dois-pontos-igual> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda,Erro,FinalErro0), selecionada(Palavra,Cauda,[],Selecionada), isVariavel(Selecionada), setError('<dois-pontos-igual> esperado após <id> em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
+comando(Palavra,Cauda,Erro,FinalErro) :- id(Palavra,Cauda,Erro,FinalErro0), setError('<id> não é uma variável declarada em <comando>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 comando(Palavra,Cauda,Erro,FinalErro) :- chamadaProcedimento(Palavra,Cauda,Erro,FinalErro).
 
 corpo(Palavra,Cauda,Erro,FinalErro) :- declara(Palavra,Cauda0,Erro,FinalErro0), rotina(Cauda0,Cauda1,FinalErro0,FinalErro1), begin(Cauda1,Cauda2), sentencas(Cauda2,Cauda3,FinalErro1,FinalErro), end(Cauda3,Cauda), !.
@@ -349,10 +361,10 @@ corpo(Palavra,Cauda,Erro,FinalErro) :- declara(Palavra,Cauda0,Erro,FinalErro0), 
 corpo(Palavra,Cauda,Erro,FinalErro) :- declara(Palavra,Cauda,Erro,FinalErro0), setError('<rotina> esperado após <declara> em <corpo>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 corpo(Palavra,Palavra,Erro,Erro).
 
-programa(Palavra,Cauda,Erro,FinalErro) :- program(Palavra,Cauda0), id(Cauda0,Cauda1), pontoEVirgula(Cauda1,Cauda2), corpo(Cauda2,Cauda3,Erro,FinalErro), ponto(Cauda3,Cauda), !.
-programa(Palavra,Cauda,Erro,FinalErro) :- program(Palavra,Cauda0), id(Cauda0,Cauda1), pontoEVirgula(Cauda1,Cauda2), corpo(Cauda2,Cauda,Erro,FinalErro0), setError('<ponto> esperado após <corpo> em <programa>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
-programa(Palavra,Cauda,Erro,FinalErro) :- program(Palavra,Cauda0), id(Cauda0,Cauda1), pontoEVirgula(Cauda1,Cauda), setError('<corpo> esperado após <ponto-e-virgula> em <programa>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
-programa(Palavra,Cauda,Erro,FinalErro) :- program(Palavra,Cauda0), id(Cauda0,Cauda), setError('<ponto-e-virgula> esperado após <id> em <programa>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
+programa(Palavra,Cauda,Erro,FinalErro) :- program(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), pontoEVirgula(Cauda1,Cauda2), corpo(Cauda2,Cauda3,FinalErro0,FinalErro), ponto(Cauda3,Cauda), !.
+programa(Palavra,Cauda,Erro,FinalErro) :- program(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), pontoEVirgula(Cauda1,Cauda2), corpo(Cauda2,Cauda,FinalErro0,FinalErro1), setError('<ponto> esperado após <corpo> em <programa>.',Cauda,NovoErro), append([NovoErro],FinalErro1,FinalErro), !.
+programa(Palavra,Cauda,Erro,FinalErro) :- program(Palavra,Cauda0), id(Cauda0,Cauda1,Erro,FinalErro0), pontoEVirgula(Cauda1,Cauda), setError('<corpo> esperado após <ponto-e-virgula> em <programa>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
+programa(Palavra,Cauda,Erro,FinalErro) :- program(Palavra,Cauda0), id(Cauda0,Cauda,Erro,FinalErro0), setError('<ponto-e-virgula> esperado após <id> em <programa>.',Cauda,NovoErro), append([NovoErro],FinalErro0,FinalErro), !.
 programa(Palavra,Cauda,Erro,FinalErro) :- program(Palavra,Cauda), setError('<id> esperado após <program> em <programa>.',Cauda,NovoErro), append([NovoErro],Erro,FinalErro), !.
 programa(Palavra,Palavra,Erro,FinalErro) :- setError('Gramática deve começar com <program>.',Palavra,NovoErro), append([NovoErro],Erro,FinalErro).
 
