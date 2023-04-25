@@ -9,14 +9,17 @@ PROGRAM: str = """
 # criando o programa prog1 #
 program prog1;
 var v1,v2: integer;
-# function sum(a,b: integer): integer;
+# efetura a soma de dois valores #
+function sum(a,b: integer): integer;
     var result: integer;
     begin
     result := +(a,b);
-    end; #
+    end;
 begin
     v1 := +(1,2);
     v2 := -(v1,3);
+    v3 := sum(v1,v2);
+    write(v3);
 end.
 """
 
