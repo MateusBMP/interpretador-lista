@@ -30,9 +30,9 @@ def main():
         colored = False
         start_line = True
         # Corrige a posição do erro caso seja logo após um \n, espaço ou tab
-        while PROGRAM[main_error['posicao'] - 1] in ['\n', ' ', '\t']:
+        while programa_string[main_error['posicao'] - 1] in ['\n', ' ', '\t']:
             main_error['posicao'] -= 1
-        for i, char in enumerate(PROGRAM):
+        for i, char in enumerate(programa_string):
             if start_line:
                 print(Style.RESET_ALL + Style.BRIGHT + Fore.BLUE + str(line + 1) + ' ' + Style.RESET_ALL, end='')
                 start_line = False
