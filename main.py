@@ -8,18 +8,21 @@ from colorama import just_fix_windows_console, Fore, Style
 PROGRAM: str = """
 # criando o programa prog1 #
 program prog1;
-var v1,v2,v3: integer;
-# efetura a soma de dois valores #
-function sum(a,b: integer): integer;
-    var result: integer;
-    begin
-    result := +(a,b);
-    end;
+var v1,max: integer;
+# efetura a soma de três valores #
+function soma(max: integer): integer;
+var i,result: integer;
 begin
-    v1 := +(1,2);
-    v2 := -(v1,3);
-    v3 := sum(v1,v2);
-    write(v3);
+    result := 0;
+    for (i := 1 to max) do
+    begin
+        result := +(result,i);
+    end;
+end;
+begin
+    max := 10;
+    v1 := soma(max);
+    write(v1);
 end.
 """
 
