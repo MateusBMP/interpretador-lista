@@ -1,0 +1,18 @@
+# criando o programa prog1 #
+program prog1;
+var v1,max: integer;
+# efetura a soma de três valores #
+function soma(max: integer): integer;
+var i,result: integer;
+begin
+    result := 0;
+    for (i := 1 to max) do
+    begin
+        result := +(result,i);
+    end;
+end;
+begin
+    max := 10;
+    v1 := soma(max);
+    write(v1);
+end.

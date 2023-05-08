@@ -2,6 +2,7 @@ import os
 from app.config import config
 from app.kvn import parser
 from app.programa import Programa
+from colorama import Fore, Style
 from pyswip.prolog import Prolog
 
 PROLOG_FILE = os.path.join(os.path.dirname(__file__), "gramatica.pl")
@@ -11,7 +12,7 @@ class Interpretador():
     def __init__(self, programa: Programa):
         self.prolog = Prolog()
         if config('debug', False):
-            print("?- consult('%s')." % PROLOG_FILE)
+            print(Style.BRIGHT + "?-" + Style.RESET_ALL + " consult('%s')." % PROLOG_FILE)
         self.prolog.consult("%s" % PROLOG_FILE)
         self.programa = programa
 
@@ -38,7 +39,7 @@ class Interpretador():
         tail = []
         end_error = []
         if config('debug', False):
-            print("?- %s" % prolog_query)
+            print(Style.BRIGHT + "?-" + Style.RESET_ALL + " %s" % prolog_query)
         if bool(list(self.prolog.query(prolog_query))):
             for r in list(self.prolog.query(prolog_query)):
                 for key in r.keys():

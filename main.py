@@ -1,3 +1,4 @@
+import os
 import sys
 from app.config import Config
 from app.interpretador import Interpretador
@@ -5,34 +6,14 @@ from app.programa import Programa
 from colorama import just_fix_windows_console, Fore, Style
 
 
-PROGRAM: str = """
-# criando o programa prog1 #
-program prog1;
-var v1,max: integer;
-# efetura a soma de três valores #
-function soma(max: integer): integer;
-var i,result: integer;
-begin
-    result := 0;
-    for (i := 1 to max) do
-    begin
-        result := +(result,i);
-    end;
-end;
-begin
-    max := 10;
-    v1 := soma(max);
-    write(v1);
-end.
-"""
-
-
 def main():
-    programa = Programa(PROGRAM)
+    with open(config.get('program'), 'r') as programa_file:
+        programa_string = programa_file.read()
+        programa_file.close()
+
+    programa = Programa(programa_string)
     interpretador = Interpretador(programa)
     result, errors = interpretador.analisarPrograma()
-
-    just_fix_windows_console()
 
     if result:
         print(Fore.GREEN + "Programa aceito!")
@@ -75,11 +56,42 @@ def main():
     return 0
 
 
+def help_message() -> None:
+    print(Style.BRIGHT + "Uso: " + Style.RESET_ALL + "python3 main.py [opções] <arquivo>")
+    print("  Executa o interpretador de uma linguagem de programação fictícia.")
+    print("  Espera um <arquivo> com o código fonte do programa a ser interpretado.")
+    print(Style.BRIGHT + "Opções:" + Style.RESET_ALL)
+    print(Style.BRIGHT + "  --debug:" + Style.RESET_ALL + " Mostra o erro completo")
+    print(Style.BRIGHT + "  --help:" + Style.RESET_ALL + " Mostra esta mensagem")
+
+
 if __name__ == '__main__':
+    just_fix_windows_console()
     config = Config()
 
     for arg in sys.argv:
+        if arg == os.path.basename(__file__) or arg == sys.argv[0]:
+            continue
+        if arg == '--help':
+            help_message()
+            sys.exit(1)
         if arg == '--debug':
             config.set('debug', True)
+        else:
+            config.set('program', arg)
 
-    main()
+    if config.get('debug'):
+        print(Style.BRIGHT + Fore.WHITE + "# Modo debug ativado" + Fore.RESET + Style.RESET_ALL)
+
+    if config.get('program') is None:
+        help_message()
+        sys.exit(1)
+
+    if not os.path.isfile(config.get('program')):
+        print(Fore.RED + "Arquivo não encontrado!")
+        sys.exit(1)
+
+    if config.get('debug'):
+        print(Style.BRIGHT + "# " + Style.RESET_ALL + "Arquivo: %s" % config.get('program'))
+
+    sys.exit(main())

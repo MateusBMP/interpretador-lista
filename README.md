@@ -20,15 +20,15 @@ O projeto faz uso do swi-prolog e tentará instalá-lo automaticamente. Caso nã
 ## Execução
 
 ```bash
-python main.py
+python main.py <arquivo>
 ```
 
-O programa executará o código escrito na constante `PROGRAM` no arquivo `main.py`. Caso queira testar outro código, basta alterar o valor dessa constante.
+O programa executará o código escrito no arquivo informado no parâmetro `<arquivo>`. Caso queira testar outro código, basta alterar o arquivo. Pode-se utilizar o arquivo [file.il.example](./file.il.example) como exemplo: `cp file.il.example file.il`.
 
 Também é possível pedir mais detalhes sobre a execução passando o argumento `--debug`:
 
 ```bash
-python main.py --debug
+python main.py --debug <arquivo>
 ```
 
 ## BNF
@@ -39,7 +39,7 @@ Além disso, a gramática descarta os espaços e novas linhas além de aceitar c
 
 ## Dicas
 
-Para testar alguma coisa específica na BNF, primeiro crie o programa na variável `PROGRAM` no arquivo `main.py`. Em seguida, execute o código e pegue a query executada pelo swi-prolog. Agora você pode entrar no swi-prolog, importar a gramática, iniciar o debug e executar a query. Por exemplo:
+Para testar alguma coisa específica na BNF, primeiro crie o programa e coloque em algum arquivo. Em seguida, execute o código e pegue a query executada pelo swi-prolog. Agora você pode entrar no swi-prolog, importar a gramática, iniciar o debug e executar a query. Por exemplo:
 
 ```prolog
 ?- consult('./app/gramatica.pl').

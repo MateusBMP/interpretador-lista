@@ -18,6 +18,9 @@ class Config(metaclass=SingletonMeta):
     def set(self, key: str, value):
         self.data[key] = value
 
+    def __str__(self):
+        return str(self.data)
+
 
 def config(key: str, default=None):
     return Config().get(key, default)
